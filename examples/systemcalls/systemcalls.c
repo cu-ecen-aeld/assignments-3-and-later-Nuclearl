@@ -1,3 +1,8 @@
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #include "systemcalls.h"
 
 /**
@@ -17,7 +22,7 @@ bool do_system(const char *cmd)
  *   or false() if it returned a failure
 */
 
-    return true;
+    return (system(cmd) == -1) ? false : true;
 }
 
 /**
@@ -58,7 +63,20 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    pid_t child_pid = fork();
+    int status;
 
+    if (child_pid == -1) {
+	return -1;
+    } else if (child_pid == 0) {
+	execv(command[0], command);
+	exit(1);
+    } else {
+	wait(&status);
+	if (status != 0) {
+		return false;
+	}
+    }
     va_end(args);
 
     return true;
@@ -92,6 +110,33 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    
+    pid_t child_pid = fork();
+    
+    if (child_pid == -1) {
+	
+	return -1;
+    } else if (child_pid == 0) {
+	int file_descriptor = open(outputfile, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+
+	if (file_descriptor == -1) {
+		return -1;
+	}
+
+	dup2(file_descriptor, 1);
+	close(file_descriptor);
+
+	execv(command[0], command);
+
+	return false;
+    } else {
+	int status;
+	wait(&status);
+
+	if (status != 0) {
+		return false;
+    	}
+    }
 
     va_end(args);
 
