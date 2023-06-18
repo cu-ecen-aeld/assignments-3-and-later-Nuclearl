@@ -1,0 +1,14 @@
+file=$1
+str=$2
+
+if [ $# -ne 2 ]; then
+	exit 1
+elif [ $# -lt 1 ]; then
+	exit 1
+else 
+	directory=	if [ ! -d "$directory" ]; then
+    		mkdir $(dirname "$file")
+	fi
+	echo "$str" >> "$file"
+fi
+
